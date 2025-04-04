@@ -1,73 +1,43 @@
-const express = require('express');
-const app = express();
-const bodyparser = require('body-parser');
-const exhbs = require('express-handlebars');
-const dbo = require('./db');
-const ObjectID = dbo.ObjectID;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mongodb CRUD Example</title>
+</head>
+<body>
+    
+    <h1>Mongodb CRUD Example</h1>
+    {{message}}
+    <br>
+    {{#if edit_id}}
+     <h3>Edit</h3>
+    <form method="post" action="/update_book/{{edit_id}}">
+        <label for="">Title</label>
+        <input type="text" name="title" value="{{edit_book.title}}">
+        <label for="">Author</label>
+        <input type="text" name="author" value="{{edit_book.author}}">
+        <input type="submit" >
+    </form><br><br>
+    {{else}}
 
-app.engine('hbs', exhbs.engine({
-    layoutsDir: 'views/',
-    defaultLayout: 'main',
-    extname: 'hbs'
-}));
-app.set('view engine', 'hbs');
-app.set('views', 'views');
-app.use(bodyparser.urlencoded({ extended: true }));
+    <h3>Create</h3>
+    <form method="post" action="/store_book">
+        <label for="">Title</label>
+        <input type="text" name="title">
+        <label for="">Author</label>
+        <input type="text" name="author">
+        <input type="submit" >
+    </form><br><br>
 
-app.get('/', async (req, res) => {
-    let database = await dbo.getDatabase();
-    const collection = database.collection('books');
-    const cursor = collection.find({});
-    let books = await cursor.toArray();
+   {{/if}}
 
-    let message = '';
-    let edit_id, edit_book;
+    <ul>
+        {{#each books}}
+        <li> {{this.title}} - {{this.author}}  <a href="/?edit_id={{this._id}}">Edit</a>  <a href="/?delete_id={{this._id}}" onclick="return confirm('Are you sure want to delete?')" >Delete</a></li>
+        {{/each}}
+    </ul>
 
-    if (req.query.edit_id) {
-        edit_id = req.query.edit_id;
-        edit_book = await collection.findOne({ _id: new ObjectID(edit_id) }); // ✅ FIXED
-    }
-
-    if (req.query.delete_id) {
-        await collection.deleteOne({ _id: new ObjectID(req.query.delete_id) }); // ✅ FIXED
-        return res.redirect('/?status=3');
-    }
-
-    switch (req.query.status) {
-        case '1':
-            message = 'Inserted Successfully!';
-            break;
-        case '2':
-            message = 'Updated Successfully!';
-            break;
-        case '3':
-            message = 'Deleted Successfully!';
-            break;
-        default:
-            break;
-    }
-
-    res.render('main', { message, books, edit_id, edit_book });
-});
-
-app.post('/store_book', async (req, res) => {
-    let database = await dbo.getDatabase();
-    const collection = database.collection('books');
-    let book = { title: req.body.title, author: req.body.author };
-    await collection.insertOne(book);
-    return res.redirect('/?status=1');
-});
-
-app.post('/update_book/:edit_id', async (req, res) => {
-    let database = await dbo.getDatabase();
-    const collection = database.collection('books');
-    let book = { title: req.body.title, author: req.body.author };
-    let edit_id = req.params.edit_id;
-
-    await collection.updateOne({ _id: new ObjectID(edit_id) }, { $set: book }); // ✅ FIXED
-    return res.redirect('/?status=2');
-});
-
-app.listen(8000, () => {
-    console.log('🚀 Listening on port 8000');
-});
+</body>
+</html>
